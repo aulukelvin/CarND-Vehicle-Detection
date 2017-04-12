@@ -1,4 +1,4 @@
-**CarNd Vehicle Detection Project**
+## CarNd Vehicle Detection Project
 
 The goals / steps of this project are the following:
 
@@ -19,13 +19,33 @@ The goals / steps of this project are the following:
 [image7]: ./examples/output_bboxes.png
 [video1]: ./project_video.mp4
 
-## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
- 
 ---
+### Introduction
+#### File Structure
+/CarND-Vehicle-Detection-P5
+    /camera_cal/                         -- camera caliberation images, copied from CarND-Advanced-Lane-Finder project
+    /examples/                           -- screenshots and images for documenting
+    /test_images/                        -- test images for evaluating detection performance
+    /utility/                            -- python modules
+        /p4.py                           -- python module for lane line finding
+        /p5.py                           -- python module for vehicle detection
+    /CarND_Advanced_lane_finder.ipynb    -- note book for testing advanced lane finder
+    /VehicleDetector-P5.ipynb            -- note book for vehicle detection
+    /camera_cals.p                       -- pickled camera caliberation metrics
+    /perspective_transformation.p        -- pickled perspective transformation metrics
+    /project_video.mp4                   -- original target video to process
+    /project-out-processed.mp4           -- output video processed using manual feature extraction plus SVM
+    /project-out-yolo.mp4                -- output video processed using YOLO
+    /README.md                           -- the document
+### Enhancement of the Advanced Lane Finder
+This project was based on the previous Advanced Lane Finder project. So that the Advanced Lane Finder project script and some foundamental data have been coppied over from the CarND-Advanced-Lane-finder project. Before started work on the Vehicle Detection project I have done several enhancement on the Advanced Lane Finder scripts. The most significant change is to control the lane line jittering. 
+* I plot the left and right poly fit parameters like the following and found out the values of these parameters normally stay in a range but will jitter dramadically if the model ran into problem evaluate the lane lines. So I set a threshold for the values and discard the result when the value is over the threshold.
+* I also used sliding average of 5 nearest poly fit results to predict the real parameter. 
+* I also re-calibered the perspective anchors and pushed the perspective upper border to its a little bit further. I found out even only lift the upper border a little bit can still collect much more lane line information. So it's good idea to push the top of the boarder. 
+
+In the project, the code block of   
 
 ### Histogram of Oriented Gradients (HOG)
-
-#### 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
 The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
 
