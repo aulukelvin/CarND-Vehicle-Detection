@@ -10,6 +10,11 @@ The goals / steps of this project are the following:
 * Estimate a bounding box for vehicles detected.
 
 [//]: # (Image References)
+[imagefixa]: ./examples/fit[0].png
+[imagefixb]: ./examples/fit[1].png
+[imagefixc]: ./examples/fit[2].png
+[image1]: ./examples/car_not_car.png
+[image1]: ./examples/car_not_car.png
 [image1]: ./examples/car_not_car.png
 [image2]: ./examples/HOG_example.jpg
 [image3]: ./examples/sliding_windows.jpg
@@ -22,28 +27,42 @@ The goals / steps of this project are the following:
 ---
 ### Introduction
 #### File Structure
-/CarND-Vehicle-Detection-P5
-    /camera_cal/                         -- camera caliberation images, copied from CarND-Advanced-Lane-Finder project
-    /examples/                           -- screenshots and images for documenting
-    /test_images/                        -- test images for evaluating detection performance
-    /utility/                            -- python modules
-        /p4.py                           -- python module for lane line finding
-        /p5.py                           -- python module for vehicle detection
-    /CarND_Advanced_lane_finder.ipynb    -- note book for testing advanced lane finder
-    /VehicleDetector-P5.ipynb            -- note book for vehicle detection
-    /camera_cals.p                       -- pickled camera caliberation metrics
-    /perspective_transformation.p        -- pickled perspective transformation metrics
-    /project_video.mp4                   -- original target video to process
-    /project-out-processed.mp4           -- output video processed using manual feature extraction plus SVM
-    /project-out-yolo.mp4                -- output video processed using YOLO
-    /README.md                           -- the document
-### Enhancement of the Advanced Lane Finder
-This project was based on the previous Advanced Lane Finder project. So that the Advanced Lane Finder project script and some foundamental data have been coppied over from the CarND-Advanced-Lane-finder project. Before started work on the Vehicle Detection project I have done several enhancement on the Advanced Lane Finder scripts. The most significant change is to control the lane line jittering. 
-* I plot the left and right poly fit parameters like the following and found out the values of these parameters normally stay in a range but will jitter dramadically if the model ran into problem evaluate the lane lines. So I set a threshold for the values and discard the result when the value is over the threshold.
-* I also used sliding average of 5 nearest poly fit results to predict the real parameter. 
-* I also re-calibered the perspective anchors and pushed the perspective upper border to its a little bit further. I found out even only lift the upper border a little bit can still collect much more lane line information. So it's good idea to push the top of the boarder. 
+|  Folder and File                     | Description |
+|-----|-----|
+|/CarND-Vehicle-Detection-P5           | root folder | 
+|    /camera_cal/                      |  camera caliberation images, copied from CarND-Advanced-Lane-Finder project|
+|    /examples/                        |  screenshots and images for documenting|
+|    /test_images/                     |  test images for evaluating detection performance|
+|    /utility/                         |  python modules|
+|        /p4.py                        |  python module for lane line finding|
+|        /p5.py                        |  python module for vehicle detection|
+|    /CarND_Advanced_lane_finder.ipynb |  note book for testing advanced lane finder|
+|    /VehicleDetector-P5.ipynb         |  note book for vehicle detection|
+|    /camera_cals.p                    |  pickled camera caliberation metrics|
+|    /perspective_transformation.p     |  pickled perspective transformation metrics|
+|    /project_video.mp4                |  original target video to process|
+|    /project-out-processed.mp4        |  output video processed using manual feature extraction plus SVM|
+|    /project-out-yolo.mp4             |  output video processed using YOLO|
+|    /README.md                        |  the document|
 
-In the project, the code block of   
+### Enhancement from the Advanced Lane Finder
+This project was based on the CarND Advanced Lane Finder project. Before started work on the Vehicle Detection project I have done several enhancement on the Advanced Lane Finder scripts. The Advanced Lane Finder project script and some foundamental data have been copied over from the CarND-Advanced-Lane-finder project:
+
+* Filter out exceptional lane line fix result. The produced line fix function is like the following:
+```
+   f(y) = a*y^2 + b*y + c.    --we use axis y to calculate distance.
+```
+  I found out it's very effective to evaluate the performance of line fixing. Just for this project video as an example, the parameter a should be between 0.0004 and -0.0005, and the parameter b should be between 0.1 and -0.5. Any other value outside the range can cause the lane line bent too much. When I detected the out range fit result I simple discard the current result and replace it with the last normal figure. The treated result can be depicted as the following:
+  
+ |  param a | param b  | param c |
+ |-----|-----|-----|
+ | ![fit param a][imagefixa]  |     ![fit param b][imagefixb] |  ![fit param c][imagefixc]|    
+
+* Level off the impact of extreme values. I used sliding window of 5 latest poly fit results to predict the real parameter. The result shows that the quality of the lane fiting has been improved alot.
+
+* I also re-tuned the perspective transormation. I found out even lift the upper border of the transformation mapping corners a small number of piXels can still loop in much more lane line information. So it will be much easier for the algorithm to fit the lane line. 
+
+The code of Lane line finding are in CarND_Advanced_lane_finder.ipynb and also utility/p4.py  
 
 ### Histogram of Oriented Gradients (HOG)
 
