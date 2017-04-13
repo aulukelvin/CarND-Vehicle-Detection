@@ -25,12 +25,11 @@ The goals / steps of this project are the following:
 [video1]: ./project_video.mp4
 
 ---
-### Introduction
-#### File Structure
+### File Structure
 |  Folder and File                     | Description |
 |-----|-----|
 |/CarND-Vehicle-Detection-P5           | root folder | 
-|    /camera_cal/                      |  camera caliberation images, copied from CarND-Advanced-Lane-Finder project|
+|    /camera_cal/                      |  camera calibration images, copied from CarND-Advanced-Lane-Finder project|
 |    /examples/                        |  screenshots and images for documenting|
 |    /test_images/                     |  test images for evaluating detection performance|
 |    /utility/                         |  python modules|
@@ -38,7 +37,7 @@ The goals / steps of this project are the following:
 |        /p5.py                        |  python module for vehicle detection|
 |    /CarND_Advanced_lane_finder.ipynb |  note book for testing advanced lane finder|
 |    /VehicleDetector-P5.ipynb         |  note book for vehicle detection|
-|    /camera_cals.p                    |  pickled camera caliberation metrics|
+|    /camera_cals.p                    |  pickled camera calibration metrics|
 |    /perspective_transformation.p     |  pickled perspective transformation metrics|
 |    /project_video.mp4                |  original target video to process|
 |    /project-out-processed.mp4        |  output video processed using manual feature extraction plus SVM|
@@ -46,27 +45,51 @@ The goals / steps of this project are the following:
 |    /README.md                        |  the document|
 
 ### Enhancement from the Advanced Lane Finder
-This project was based on the CarND Advanced Lane Finder project. Before started work on the Vehicle Detection project I have done several enhancement on the Advanced Lane Finder scripts. The Advanced Lane Finder project script and some foundamental data have been copied over from the CarND-Advanced-Lane-finder project:
+This project is based on the CarND Advanced Lane Finder project. Before started work on the Vehicle Detection project I have done several enhancement on the Advanced Lane Finder scripts. The Advanced Lane Finder projectede script and some fundamental data have been copied over from the CarND-Advanced-Lane-finder project:
 
 * Filter out exceptional lane line fix result. The produced line fix function is like the following:
-```
+   ```
    f(y) = a*y^2 + b*y + c.    --we use axis y to calculate distance.
-```
-  I found out it's very effective to evaluate the performance of line fixing. Just for this project video as an example, the parameter a should be between 0.0004 and -0.0005, and the parameter b should be between 0.1 and -0.5. Any other value outside the range can cause the lane line bent too much. When I detected the out range fit result I simple discard the current result and replace it with the last normal figure. The treated result can be depicted as the following:
+   ```
+  I found out it's very effective to evaluate line fixing performance. Just for this project video as an example, the parameter a should be between 0.0004 and -0.0005, and the parameter b should be between 0.1 and -0.5. Any other value outside the range can cause the lane line bent too much. When I detected the out range fit result I simple discard the current result and replace it with the last normal figure. The treated result can be depicted as the following:
   
  |  param a | param b  | param c |
  |-----|-----|-----|
  | ![fit param a][imagefixa]  |     ![fit param b][imagefixb] |  ![fit param c][imagefixc]|    
 
-* Level off the impact of extreme values. I used sliding window of 5 latest poly fit results to predict the real parameter. The result shows that the quality of the lane fiting has been improved alot.
+* Level off the impact of extreme values by using the average of the poly fit parameters of 5 last frames to make the fitted lines smoother. 
 
-* I also re-tuned the perspective transormation. I found out even lift the upper border of the transformation mapping corners a small number of piXels can still loop in much more lane line information. So it will be much easier for the algorithm to fit the lane line. 
+* I also fine tuned the perspective transformation. I found out even if just lift a small number of pixels of the upper border of the transformation mapping window can still loop in much more lane line information, and it will make it much easier for the algorithm to fit the lane line. This is easy to understand, the road information become condensed when it is closer to the vanishing point so even 10 - 20 pixels in the far end can cover quite long distance. 
+   The old and new src/dst settings of the perspective transformation are as the following:
+   ```python
+    #old parameters
+    src = np.float32([[565, 470],[720, 470],[290,680],[1090,680]])
+    dst = np.float32([[290, 100],[1090, 100],[290,680],[1090,680]])
+    
+    #new parameters
+    src = np.float32([[602, 460],[715, 460],[290,690],[1080,690]]) 
+    dst = np.float32([[350, 100],[900, 100],[350,680],[900,680]])
+   ```
 
 The code of Lane line finding are in CarND_Advanced_lane_finder.ipynb and also utility/p4.py  
 
+### Feature extraction
+### Searching
+
+### False positive reduction
+### Discussion
+1. Speed
+In the process of tuning, I noticed that linear SVM is much faster than RBF kernel and the sub-sampling HOG extraction is also much faster but the RBF + non-sub-sampling sliding window can produce way better result. Increase the size of HOG orientations can also enhance the performance but the speed will also downgrade accordingly. In this project I choose to bias to accuracy rather than speed and the final selection is RBF + hog orientation=13 + no-sub-sampling. It takes 3.6s - 4s to process a image on my Macbook.
+
+The code using OpenCV and SKLearn as the corner stones. But both of them can't automatically utilize multi-core CPU and also can't use GPU as well. This can be a big problem if we like to deploy the model to a real system. One of the bottle neck of the performance is the large number of sliding windows. It has 384 windows in each frame under the current settings. I believe using thread pool to make the sliding window analysis runs on all eight cores rather than a single one can be a big step forward. Limited by time, it hasn't finished yet. The HOG feature extraction may benefit from GPU, so may be replace sklearn with some other HOG library which support GPU can be an option.
+
+2. Manual feature extraction plus SVM vs MLP
+This project is more focused on computer vision technologies but it's still good to know what if we simply leave the task to a MLP. I found out leading objection detection solutions, such as YOLO, can directly detect things from the image and the performance is super fast. It can process 67 frames per second using YOLOv2 and can process 207 frames per second using TinyYOLO. 
+If we are going to develop a real product then MLP may be the right way to go.
+
 ### Histogram of Oriented Gradients (HOG)
 
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
+The code for HOG feature extraction is contained in the utility/p5.py, line 213 - 235.  
 
 I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
 
@@ -123,14 +146,4 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 ### Here the resulting bounding boxes are drawn onto the last frame in the series:
 ![alt text][image7]
-
-
-
----
-
-###Discussion
-
-####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
-
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
 
