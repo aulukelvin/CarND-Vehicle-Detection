@@ -93,7 +93,50 @@ This project is more for practising computer vision skills so I'm not going to u
 I'll explain each step as following:
 
 ### Feature extraction
-In this project I 
+In this project I extracted three kinds of features for the SVM to use: the color histogram, the spatial histogram, and the HOG(Histogram of Oriented Gradient). Both the color histogram and the spatial histogram are extracting color features from the image.
+
+The spatial histogram can be considered as an enhanced version of color template matching. It generalize the image into small scalled template so that it can produce more common features than too detailed full image. If can works better than pure color template matching but the drawback is still the same: it cannot scales from training color to other unfamiliar color, and it will be heavily impacted by lumination, etc. Compare to other features, spatial histogram is more sensitive to the position of the object.  
+
+The code for spatial histogram extraction is as the following:
+
+   ```python
+      def bin_spatial(img, size=(32, 32)):
+         # Use cv2.resize().ravel() to create the feature vector
+         features = cv2.resize(img, size).ravel() 
+         # Return the feature vector
+         return features
+   ```
+The color histogram is just simply calculate the histogram of the whole image for each color channel and concate the three histograms into a single vector. Again, it's depends on the color but because it extracting features of color pattern rather than the real layout of the image, it is more stable than spatial histogram. But the downside is it also lacks enough detail to solely support making decision.
+
+The code for color histogram is as the following:
+   ```python
+      def color_hist(img, nbins=32, bins_range=(0, 256)):
+         # Compute the histogram of the color channels separately
+         channel1_hist = np.histogram(img[:,:,0], bins=nbins, range=bins_range)
+         channel2_hist = np.histogram(img[:,:,1], bins=nbins, range=bins_range)
+         channel3_hist = np.histogram(img[:,:,2], bins=nbins, range=bins_range)
+         # Concatenate the histograms into a single feature vector
+         hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
+         # Return the individual histograms, bin_centers and feature vector
+         return hist_features
+
+   ```
+   
+Then the most important feature is the HOG, which takes a gray scaled image or a single color channel from the color image and calculate the histogram of gradient orientations for small pixel patches. The Hog feature is more highlighting the profile of the  image. Then the SVM can use the HOG to identify the structure of the vehicle.
+
+The code is as below:
+      ```python
+         from skimage.feature import hog
+         
+         features, hog_image = hog(img, orientations=orient, 
+                                  pixels_per_cell=(pix_per_cell, pix_per_cell),
+                                  cells_per_block=(cell_per_block, cell_per_block), 
+                                  transform_sqrt=True, 
+                                  visualise=vis, feature_vector=feature_vec)
+         return features, hog_image
+      ```
+
+It shows that HOG feature itself can contribute most of the features but it is still benefial to include color histogram and color histogram to produce even better result.
 ### Training SVM
 
 ### Vehicle detection
