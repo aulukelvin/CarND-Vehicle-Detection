@@ -9,10 +9,12 @@ The goals / steps of this project are the following:
 * Run your pipeline on a video stream (start with the test_video.mp4 and later implement on full project_video.mp4) and create a heat map of recurring detections frame by frame to reject outliers and follow detected vehicles.
 * Estimate a bounding box for vehicles detected.
 
-[//]: # (Image References)
 [imagefixa]: ./examples/fit[0].png
 [imagefixb]: ./examples/fit[1].png
 [imagefixc]: ./examples/fit[2].png
+[imagefixa_old]: ./examples/fit[0]_old.png
+[imagefixb_old]: ./examples/fit[1]_old.png
+[imagefixc_old]: ./examples/fit[2]_old.png
 [image1]: ./examples/car_not_car.png
 [image1]: ./examples/car_not_car.png
 [image1]: ./examples/car_not_car.png
@@ -33,8 +35,8 @@ The goals / steps of this project are the following:
 |    /examples/                        |  screenshots and images for documenting|
 |    /test_images/                     |  test images for evaluating detection performance|
 |    /utility/                         |  python modules|
-|        /p4.py                        |  python module for lane line finding|
-|        /p5.py                        |  python module for vehicle detection|
+|    /utility/p4.py                        |  python module for lane line finding|
+|    /utility/p5.py                        |  python module for vehicle detection|
 |    /CarND_Advanced_lane_finder.ipynb |  note book for testing advanced lane finder|
 |    /VehicleDetector-P5.ipynb         |  note book for vehicle detection|
 |    /camera_cals.p                    |  pickled camera calibration metrics|
@@ -51,11 +53,23 @@ This project is based on the CarND Advanced Lane Finder project. Before started 
    ```
    f(y) = a*y^2 + b*y + c.    --we use axis y to calculate distance.
    ```
-  I found out it's very effective to evaluate line fixing performance. Just for this project video as an example, the parameter a should be between 0.0004 and -0.0005, and the parameter b should be between 0.1 and -0.5. Any other value outside the range can cause the lane line bent too much. When I detected the out range fit result I simple discard the current result and replace it with the last normal figure. The treated result can be depicted as the following:
+  I found out it's very effective to evaluate line fixing performance. Just for this project video as an example, the parameter a should be between 0.0004 and -0.0005, and the parameter b should be between 0.8 and -0.5. Any other value outside the range can cause the lane line bent too much. When I detected the out range fit result I simple discard the current result and replace it with the last normal figure. These threshold may need to be generalized rather than overfit to this particular project but I believe this is the right way to control the robustness of the line fiting. 
   
- |  param a | param b  | param c |
- |-----|-----|-----|
- | ![fit param a][imagefixa]  |     ![fit param b][imagefixb] |  ![fit param c][imagefixc]|    
+  The treated result can be depicted as the following:
+ 
+  Fit parameters before trimming exception values:
+  
+  |  param a | param b  | param c |
+  |-----|-----|-----|
+  | ![fit param a_old][imagefixa_old]  |     ![fit param b_old][imagefixb_old] |  ![fit param c_old][imagefixc_old]|    
+
+
+  Fit parameters after trimming exception values:
+  
+  |  param a | param b  | param c |
+  |-----|-----|-----|
+  | ![fit param a][imagefixa]  |     ![fit param b][imagefixb] |  ![fit param c][imagefixc]|    
+ 
 
 * Level off the impact of extreme values by using the average of the poly fit parameters of 5 last frames to make the fitted lines smoother. 
 
@@ -73,19 +87,32 @@ This project is based on the CarND Advanced Lane Finder project. Before started 
 
 The code of Lane line finding are in CarND_Advanced_lane_finder.ipynb and also utility/p4.py  
 
+### Vehicle detection pipeline
+This project is more for practising computer vision skills so I'm not going to use MLP in the project. Image is very high dimentional data which is very difficult for non-MLP model to analysis. In order to make it easier, normally we need to manually extract features from the image and then seed them into a model like SVM to do classification. Then we use sliding window technique to scan through the whole image to identify target vehicles. Then we'll need to find a way to reduce the noise of the detection. 
+
+I'll explain each step as following:
+
 ### Feature extraction
-### Searching
+In this project I 
+### Training SVM
+
+### Vehicle detection
 
 ### False positive reduction
-### Discussion
-1. Speed
-In the process of tuning, I noticed that linear SVM is much faster than RBF kernel and the sub-sampling HOG extraction is also much faster but the RBF + non-sub-sampling sliding window can produce way better result. Increase the size of HOG orientations can also enhance the performance but the speed will also downgrade accordingly. In this project I choose to bias to accuracy rather than speed and the final selection is RBF + hog orientation=13 + no-sub-sampling. It takes 3.6s - 4s to process a image on my Macbook.
 
-The code using OpenCV and SKLearn as the corner stones. But both of them can't automatically utilize multi-core CPU and also can't use GPU as well. This can be a big problem if we like to deploy the model to a real system. One of the bottle neck of the performance is the large number of sliding windows. It has 384 windows in each frame under the current settings. I believe using thread pool to make the sliding window analysis runs on all eight cores rather than a single one can be a big step forward. Limited by time, it hasn't finished yet. The HOG feature extraction may benefit from GPU, so may be replace sklearn with some other HOG library which support GPU can be an option.
+### Video processing
+
+### Discussion
+1. Speed vs accuracy trade off
+   In the process of tuning, I noticed that linear SVM is much faster than RBF kernel and the sub-sampling HOG extraction is also much faster but the RBF + non-sub-sampling sliding window can produce way better result. Increase the size of HOG orientations can also enhance the performance but the speed will also downgrade accordingly. In this project I choose to bias to accuracy rather than speed and the final selection is RBF + hog orientation=13 + no-sub-sampling. It takes 3.6s - 4s to process a image on my Macbook.
+
+2. How to utilize hardware 
+   The code using OpenCV and SKLearn as the corner stones. But both of them can't automatically utilize multi-core CPU and also can't use GPU as well. This can be a big problem if we like to deploy the model to a real system. One of the bottle neck of the performance is the large number of sliding windows. It has 384 windows in each frame under the current settings. I believe using thread pool to make the sliding window analysis runs on all eight cores rather than a single one can be a big step forward. Limited by time, it hasn't finished yet. The HOG feature extraction may benefit from GPU, so may be replace sklearn with some other HOG library which support GPU can be an option.
 
 2. Manual feature extraction plus SVM vs MLP
-This project is more focused on computer vision technologies but it's still good to know what if we simply leave the task to a MLP. I found out leading objection detection solutions, such as YOLO, can directly detect things from the image and the performance is super fast. It can process 67 frames per second using YOLOv2 and can process 207 frames per second using TinyYOLO. 
-If we are going to develop a real product then MLP may be the right way to go.
+   This project is more focused on computer vision technologies but it's still good to know what if we simply leave the task to a MLP. I found out leading objection detection solutions, such as YOLO, can directly detect things from the image and the performance is super fast. It can process 67 frames per second using YOLOv2 and can process 207 frames per second using TinyYOLO.
+   Besides the speed, we can see that the YOLO result is very stable and able to catch very small objects which is really challenging for SVM method. 
+   If we are going to develop a real product then MLP may be the right way to go.
 
 ### Histogram of Oriented Gradients (HOG)
 
