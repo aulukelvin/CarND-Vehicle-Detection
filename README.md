@@ -16,8 +16,6 @@ The goals / steps of this project are the following:
 [imagefixb_old]: ./examples/fit[1]_old.png
 [imagefixc_old]: ./examples/fit[2]_old.png
 [image1]: ./examples/car_not_car.png
-[image1]: ./examples/car_not_car.png
-[image1]: ./examples/car_not_car.png
 [image2]: ./examples/HOG_example.png
 [image3]: ./examples/sliding_windows.jpg
 [image4]: ./examples/sliding_window.jpg
@@ -97,7 +95,7 @@ In this project I extracted three kinds of features for the SVM to use: the colo
 
 The spatial histogram can be considered as an enhanced version of color template matching. It generalize the image into small scalled template so that it can produce more common features than too detailed full image. If can works better than pure color template matching but the drawback is still the same: it cannot scales from training color to other unfamiliar color, and it will be heavily impacted by lumination, etc. Compare to other features, spatial histogram is more sensitive to the position of the object.  
 
-The code for spatial histogram extraction is as the following:
+The code for spatial histogram extraction is in the /utility/p5.py as the following:
 
    ```python
       def bin_spatial(img, size=(32, 32)):
@@ -108,7 +106,7 @@ The code for spatial histogram extraction is as the following:
    ```
 The color histogram is just simply calculate the histogram of the whole image for each color channel and concate the three histograms into a single vector. Again, it's depends on the color but because it extracting features of color pattern rather than the real layout of the image, it is more stable than spatial histogram. But the downside is it also lacks enough detail to solely support making decision.
 
-The code for color histogram is as the following:
+The code for color histogram is in the /utility/p5.py as the following:
    ```python
       def color_hist(img, nbins=32, bins_range=(0, 256)):
          # Compute the histogram of the color channels separately
@@ -124,7 +122,7 @@ The code for color histogram is as the following:
    
 Then the most important feature is the HOG, which takes a gray scaled image or a single color channel from the color image and calculate the histogram of gradient orientations for small pixel patches. The Hog feature is more highlighting the profile of the  image. Then the SVM can use the HOG to identify the structure of the vehicle.
 
-The HOG example is like the following:
+The HOG example is in the /utility/p5.py like the following:
 
 ![HOT_example][image2]
 
@@ -144,6 +142,36 @@ The code is as below:
 It shows that HOG feature itself can contribute most of the features but it is still benefial to include color histogram and color histogram to produce even better result.
 
 ### Training SVM
+The next step is training the SVM. Udacity already provided a labeled training set which has 8792 car images and 8968 non-car images. All images are cropped to 64x64 pixels. The example images are as the following:
+
+![Car_nocar][image1]
+
+Then I'll need to extract features from all the car and non-car images to produce the dataset. Then I do a train_test_split to preserve 20% of the data as test set and only train the model using the 80% training set. After the training finished then use the test set to evaluate the performance of the model.
+
+There're heaps of parameter and super-parameters to tune in this step. The first important one is the color space. We can choose from RGB, HSV, LUV, HLS, YUV, YCrCb. And we can also choose to use all color channels or only one of them. Then we can choose whether to include spatial histogram, color histogram, or HOG. Then we can choose subtle parameters to make the model performes better. After long time of trail and error, I choose the following settings:
+
+```python
+   color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+   orient = 13  # HOG orientations
+   pix_per_cell = 16 # HOG pixels per cell
+   cell_per_block = 2 # HOG cells per block
+   hog_channel = "ALL" # Can be 0, 1, 2, or "ALL"
+   spatial_size = (16, 16) # Spatial binning dimensions
+   hist_bins = 16    # Number of histogram bins
+   spatial_feat = True # Spatial features on or off
+   hist_feat = True # Histogram features on or off
+   hog_feat = True # HOG features on or off
+```
+I found out the performance can increase along with the orient settings but the training and testing speed will be downgraded. Increasing pix_per_cell can speed up the speed and also leads to better performance. I chose orient=13 as the final because of the better performance and the speed is also acceptable. 
+
+Last but not the least, I need to select best SVM kernel as well. I tried Linear kernel and RBF kernel, and even tried grid search best combination of the kernel parameters. I noticed that Linear kernel can performance twice as fast as the RBF, but the test accuracy is lower than RBF. When compare the models with real image later, the gap is even bigger. I choose the RBF because of it performance. But the speed is really not good. When processing real image, the average speed is 3.8s per frame. 
+
+The final performance of the test is:
+65.63 Seconds to train SVC...
+Test Accuracy of SVC =  0.9975
+15.3 Seconds to predict.
+ 
+The code can be found from VehicleDetector-P5.ipynb section four and five.
 
 ### Vehicle detection
 
