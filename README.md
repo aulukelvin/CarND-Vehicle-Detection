@@ -17,8 +17,8 @@ The goals / steps of this project are the following:
 [imagefixc_old]: ./examples/fit[2]_old.png
 [image1]: ./examples/car_not_car.png
 [image2]: ./examples/HOG_example.png
-[image3]: ./examples/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
+[image3]: ./examples/car_detected.png
+[image4]: ./examples/car_missed.png
 [image5]: ./examples/bboxes_and_heat.png
 [image6]: ./examples/labels_map.png
 [image7]: ./examples/output_bboxes.png
@@ -174,10 +174,29 @@ Test Accuracy of SVC =  0.9975
 The code can be found from VehicleDetector-P5.ipynb section four and five.
 
 ### Vehicle detection
+All the training images are 64X64. The way we do vehicle detection on real image is using a technology called sliding window to scan through the image to see which part is matching a vehicle. This idea is quite simple but it has a couple problems. The first one is more related to the template matching itself. The quality of the prediction is heavily depends on how similar the testing scenario is to the testing data. If the positioin of the car is not so popular in the training set, or the color is rare then the result may not be accurate. From the test images we can see the detection of the black car is much easier than detection of the white car. I believe this can be improved by put in more different colored training data and do augmentation.
+
+The second problem is because the vehicle appear in the image in all scales so we have to scan the image use different scales to capture both large vehicle patches and also small ones. But that can leads to one more problem: the number of the sliding windows can be large so that the speed will be very slow. 
+
+To limit the number of sliding windows, I have limited the searching area to between the vanishing point and the car bonet. I also tried different sizes of the sliding windows and found out using both 64X64 and 128X128 can produce good enough result without downgrade the speed too much. The final number of sliding windows for a single frame is 384. This is a actually a tradeoff between performance and speed. I didn't use smaller window size that means much less windows but also means the model will not able to catch small objects.
+
+A more advanced technique to improve the detection speed is called HOG sub-sampling. Nomal HOG computation has lot of redundant computation becaue there are lot of overlap between celles. The HOG sub-sampling calculates the HOG for whole image in a single shot and then produce feature by takes sub-area values. This method proved to be able to double the speed but the accuracy is also degraded. So I didn't include HOG sub-sampling in the final model because of the time limit.  
 
 ### False positive reduction
+The SVM is very powerful to catch objects but it can often raise false alarm as well. For example the model will often been confused by the lane line and predicts lot of inexist vehicles along the line. One trick to fix this is called hard negtive mining, which means identify the failed detections, add them into the training data and retrain the model. Another trick is called heatmap, which means let the overlapping windows to vote if that area contains an object. If the result is over some threshold then we consider it's possitive.  
 
+The result is like the following:
+Car detected:
+![Car detected][image3]
+
+Car missed:
+![Car missed][image4]
+
+The code for this part can be found from /CarND-Vehicle-Detection.ipnb section 8. 
 ### Video processing
+The Video processing is basically reusing the Advanced Lane Finder project. I included the binary threshold, bird-eye view, and heatmap in the processed video for evaluation. 
+
+Here's a [link to my video result](./project_video_processe.mp4)
 
 ### Discussion
 1. Speed vs accuracy trade off
@@ -190,64 +209,4 @@ The code can be found from VehicleDetector-P5.ipynb section four and five.
    This project is more focused on computer vision technologies but it's still good to know what if we simply leave the task to a MLP. I found out leading objection detection solutions, such as YOLO, can directly detect things from the image and the performance is super fast. It can process 67 frames per second using YOLOv2 and can process 207 frames per second using TinyYOLO.
    Besides the speed, we can see that the YOLO result is very stable and able to catch very small objects which is really challenging for SVM method. 
    If we are going to develop a real product then MLP may be the right way to go.
-
-### Histogram of Oriented Gradients (HOG)
-
-The code for HOG feature extraction is contained in the utility/p5.py, line 213 - 235.  
-
-I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
-
-![alt text][image1]
-
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
-
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
-
-
-![alt text][image2]
-
-####2. Explain how you settled on your final choice of HOG parameters.
-
-I tried various combinations of parameters and...
-
-####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
-
-I trained a linear SVM using...
-
-###Sliding Window Search
-
-####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
-
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
-
-![alt text][image3]
-
-####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
-
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
-
-![alt text][image4]
----
-
-### Video Implementation
-
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./project_video.mp4)
-
-
-####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
-
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
-
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
-
-### Here are six frames and their corresponding heatmaps:
-
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
 
