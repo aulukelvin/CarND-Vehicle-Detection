@@ -18,7 +18,7 @@ The goals / steps of this project are the following:
 [image1]: ./examples/car_not_car.png
 [image1]: ./examples/car_not_car.png
 [image1]: ./examples/car_not_car.png
-[image2]: ./examples/HOG_example.jpg
+[image2]: ./examples/HOG_example.png
 [image3]: ./examples/sliding_windows.jpg
 [image4]: ./examples/sliding_window.jpg
 [image5]: ./examples/bboxes_and_heat.png
@@ -124,7 +124,12 @@ The code for color histogram is as the following:
    
 Then the most important feature is the HOG, which takes a gray scaled image or a single color channel from the color image and calculate the histogram of gradient orientations for small pixel patches. The Hog feature is more highlighting the profile of the  image. Then the SVM can use the HOG to identify the structure of the vehicle.
 
+The HOG example is like the following:
+
+![HOT_example][image2]
+
 The code is as below:
+
       ```python
          from skimage.feature import hog
          
@@ -137,6 +142,7 @@ The code is as below:
       ```
 
 It shows that HOG feature itself can contribute most of the features but it is still benefial to include color histogram and color histogram to produce even better result.
+
 ### Training SVM
 
 ### Vehicle detection
